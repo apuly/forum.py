@@ -7,17 +7,17 @@ import re
 class forum(object):
     def __init__(self, ip, ssl = False, port = None):
         self._ip = ip
-        if ssl:
-            self._protocal = "https"
+        if ssl:                                             #If the server uses SSL, it automatically adjusts the URL to start with https
+            self._protocal = "https"                        #If not the url starts with http
         else:
             self._protocal = "http"
         self._port = port
-        cj = http.cookiejar.CookieJar()
+        cj = http.cookiejar.CookieJar()                     #Cookies. Used for logging into the server.
         self._cproc = request.HTTPCookieProcessor(cj)
         self._opener = request.build_opener(self._cproc)
         self._login = False
 
-    @property
+    @property                                       #Used to get the forum IP
     def ip(self):
         return self._ip
 
@@ -30,83 +30,109 @@ class forum(object):
             p_data = parse.urlencode(data).encode()
         return self._opener.open("{}://{}{}".format(self._protocal, self._ip, url), data = p_data)
 
-    def openPage(self, url):
+    def openPage(self, url):                        #Opens a page, parses the content if the page is parsable. Return raw HTML if it's not.
         resp = self._open(url).read()
-        if url.startswith("/forumdisplay.php"):
+        if url.startswith("/forumdisplay.php"):     #URL that refers to a subforum
             return Parser.parseThreadList(resp)
-        elif url.startswith("/showthread.php"):
-            print("parsing thread")
+        elif url.startswith("/showthread.php"):     #URL that refers to a thread
             return Parser.parseThreadPage(resp)
         else:
             return resp
     
-    def respond(self, text, url = None):
-        if url is None: url = self.lastRequest
-        reg = re.match("/showthread.php\?tid=(\d+)", url)
-        if not reg: return 0
-        html = self._open(url)
+    def respond(self, text, url = None):            #Posts comment on a thread, returns True if succesfull, returns False if it fails
+        if not self._login:
+            return 0;
+        if url is None:
+            url = self.lastRequest
+        postData = self._getPostData(url)
+        if not postData:
+            return False
+        html = self._open(postData[0])
         soup = BeautifulSoup(html, 'html.parser')
-        inputs = soup.find("form", method="post", id="quick_reply_form").findAll("input", type="hidden")
+        inputs = soup.find("form", method="post", id="quick_reply_form").findAll("input", type="hidden")      #Gets the needed posting information
         data = {}
         for input in inputs:
-            data[input.get("name")] = input.get("value")
-        data['message'] = text
-        self._open('/newreply.php', data = data)
-        return 1
+            data[input.get("name")] = input.get("value")        #Parses the posting information into a dictionary
+        data['message'] = text                                  #Adds the message to the post data
+        self._open('/newreply.php', data = data)                #Posts the reply
+        return True
 
-    #logs into the forums
-    def login(self, username, password, url = '/index.php'):
-        self._login = True
-        self.username = username
+    def moveThread(self, thread_id, target_subforum, method = 'move', redirect_expire=""):
+        #if type('target_subforum') != int:
+        #    data = {'tid': thread_id, 'my_post_key': self._postkey, 'modtype': 'thread', 'action': 'move'}
+        #    resp = self._open('/moderation.php', data)
+        postData = self._getPostData(thread_id)
+        if not self._login or not postData:
+            return 0
+       
+        data = {'tid': postData[1],
+                'my_post_key': self._postkey,
+                'moveto': target_subforum,
+                'method': method, 'action': 'do_move',
+                'submit': 'Move / Copy Thread',
+                'redirect_expire': redirect_expire
+                }
+        resp = self._open('/moderation.php', data = data)
+        
+    def login(self, username, password, url = '/index.php'):    #Logs into the forum. Sets login and username if succesfull.
+                                                                #Returns True if succesfull, returns False if unsuccesfull.
 
-        DATA = {
+        DATA = {                                                #Sets the required data for logging in.
             "url": "{}://{}{}".format(self._protocal, self._ip, url),
             "action": "do_login",
             "submit": "Login",
             "quick_login": "1",
-            "quick_username": username,
-            "quick_password": password
+            "quick_username": username,                         #Sets username
+            "quick_password": password                          #Sets password
             }
 
-        resp = self._open('/member.php?action=login', DATA)
-        if "member_login" in resp.read().decode()[-16]:
+        resp = self._open('/member.php?action=login', DATA)     #Post data to login page
+        txt = resp.read().decode(errors='ignore')
+        if "member_login" in txt[-16:]:                         #If the return data refers to the login page, login was unsuccesfull
             return False
-        else:
-            self._login = True
+        else:                                                   #Otherwise login was successfull
+            self._login = True                                  #Sets login state
+            self.username = username                            #Sets username
+            self._postkey = re.search(r'var my_post_key = "(\w+)";', txt).group(1)
             return True
-        return
+        
 
-
-    #searches the given string on the forums. Requeres body & header, resturn a named tuple of the results
-    def search(self, searchUrl, params, header = None):
-        #Search from search page
-        header = header or self._defaultHeader
-        try:
-            self.resp = self._open(searchUrl, params)
+    def search(self, params, searchUrl = "/search.php"):        #Searches the given string on the forums. Requires the search params.
+        try:                                                    #sets searchResults if succesfull.
+            self.resp = self._open(searchUrl, params)           #Tries to connect to the server. Raises NoPageFound error if failed
         except request.HTTPError:
             raise self.NoPageFound('Bad response status')
         #get URL from redirect
-        soup = BeautifulSoup(self.resp.read(), 'html.parser')
-        url = soup.find('a').get('href')
+        soup = BeautifulSoup(self.resp.read(), 'html.parser')   #Loads html parser
+        url = soup.find('a').get('href')                        #Gets the redirect link from the page. Raises NoRedirect error if not found.
         if url is None:
             raise self.NoRedirect('Redirect link not found.')
         #load search results
         try:
-            self.resp = self._open('/{}'.format(url))
+            self.resp = self._open('/{}'.format(url))           #Opens redirect link, raises NoPageFound error if failed.
         except request.HTTPError:
             raise self.NoPageFound('Bad responsen status')
-        self.searchResults = Parser.parseSearchResults(self.resp.read())
+        self.searchResults = Parser.parseSearchResults(self.resp.read())    #Sets searchResults with parsed information
 
 
-    #Generates the default search parameters.
-    def genSearchParams(self, keywords):
-        params = self._defaultParams
+    
+    def genSearchParams(self, keywords):    #Generates the default search parameters.
+        params = self._defaultParams        #Takes keywords as input, returns dictionary with parameters
         params['keywords'] = keywords
         return params
 
+    def _getPostData(self, s):
+        if type(s) is str:
+            return (s, re.match("/showthread.php\?tid=(\d+)", url).group())
+        elif type(s) is int:
+            return ("/showthread.php?tid={}".format(s), s)
+        else:
+            raise TypeError 
+            
 
 
-    #Default search paramters, without the searchterm
+
+    #Default search paramters, without the searchterm. Used in genSearchParams to generate parameters for search function
     _defaultParams = {'submit':      'Search',
                      'sortordr':    'desc',
                      'sortby':      'lastpost',
@@ -119,9 +145,6 @@ class forum(object):
                      'findthreadst': '1',
                      'action': 'do_search' }
 
-    #Default header
-    _defaultHeader = {"Content-type": "application/x-www-form-urlencoded", 
-                                 "submit": "text/plain"}
 
     #Exception raised when http response does not have status 200
     class NoPageFound(Exception):
@@ -131,20 +154,19 @@ class forum(object):
             return repr(self.value)
     
 
-    #Exception raised when there is no URL found on the redirect page.
-    #This occurs when searching 
+    #Exception raised when there is no URL found on the redirect page. 
     class NoRedirect(Exception):
         def __init__(self, value):
             self.value = value
         def __str__(self):
             return repr(self.value)
 
-class Post(object):
+class Post(object):                 #Post object. Contains post data
     def __init__(self, poster, time, text, signature):
-        self._poster = poster
-        self._time = time
-        self._text = text
-        self._signature = signature
+        self._poster = poster           #Name of the poster
+        self._time = time               #The time of the post
+        self._text = text               #The text in the post
+        self._signature = signature     #The posters signature.
     @property
     def poster(self):
         return self._poster
@@ -158,15 +180,15 @@ class Post(object):
     def time(self):
         return self._time 
 
-class ThreadList(object):
+class ThreadList(object):       #Threadlist object. Contains thread list information found in subforums
     def __init__(self, forum, title, author, reply_count, view_count, last_poster, last_post_time):
-        self._title = title
-        self._author = author
-        self._forum = forum
-        self._replc = reply_count
-        self._viewc = reply_count
-        self._lastpr = last_poster
-        self._lastpt = last_post_time
+        self._title = title                 #The title of the thread
+        self._author = author               #The maker of the thread
+        self._forum = forum                 #The forum in which the thread was posted
+        self._replc = reply_count           #The reply count
+        self._viewc = view_count            #The view count
+        self._lastpr = last_poster          #The name of the person that posted last
+        self._lastpt = last_post_time       #The time at which the last reply was made
     @property
     def forum(self):
         return self._forum
@@ -201,16 +223,16 @@ class Parser():
 
             line = lines[2].find(class_ = ' subject_old')
             if line is None: line = lines[2].find('span', class_ = " subject_editable subject_old")
-            title = _parseHref(line)
+            title = Parser._parseHref(line)
 
             line = lines[2].find(class_ = 'author smalltext').find('a')
-            author = _parseHref(line)
+            author = Parser._parseHref(line)
 
             line = lines[3].find('a')
-            forum_ = _parseHref(line)
+            forum_ = Parser._parseHref(line)
 
             line = lines[6].findAll('a')[-1]
-            lastreplier = _parseHref(line)
+            lastreplier = Parser._parseHref(line)
 
             lastreplytime = lines[6].find('span').getText().split()[:2]
 
