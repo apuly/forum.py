@@ -118,7 +118,7 @@ class forum(object):
             self.resp = self._open('/{}'.format(url))           #Opens redirect link, raises NoPageFound error if failed.
         except request.HTTPError:
             raise self.NoPageFound('Bad responsen status')
-        self.searchResults = Parser.parseSearchResults(self.resp.read())    #Sets searchResults with parsed information
+        return Parser.parseSearchResults(self.resp.read())    #Sets searchResults with parsed information
 
 
     
