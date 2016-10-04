@@ -1,5 +1,11 @@
-import http.cookiejar
-from urllib import request, parse
+import sys
+if sys.version_info < (3, 0):
+    import cookielib as cookiejar
+    import urllib2 as request
+    import urllib as parse
+else:
+    import http.cookiejar
+    from urllib import request, parse
 from bs4 import BeautifulSoup
 import re
 
@@ -123,7 +129,7 @@ class forum(object):
 
     def _getPostData(self, s):
         if type(s) is str:
-            return (s, re.match("/showthread.php\?tid=(\d+)", url).group())
+            return (s, re.match("/showthread.php\?tid=(\d+)", s).group())
         elif type(s) is int:
             return ("/showthread.php?tid={}".format(s), s)
         else:
@@ -213,6 +219,7 @@ class ThreadList(object):       #Threadlist object. Contains thread list informa
 
 class Parser():
         #Parses the html from the result page; returns named tuple of the results
+    @staticmethod
     def parseSearchResults(html):
         results = []
         #tuple = namedtuple('searchResults', ['thread', 'forum', 'author', 'lastreplier', 'lastreplytime'])
@@ -242,7 +249,8 @@ class Parser():
 
             results.append(ThreadList(forum_, title, author, reply_count, view_count, lastreplier, lastreplytime))
         return results
-
+    
+    @staticmethod
     def parseThreadList(html):
         results = []
         #tuple = namedtuple('searchResults', ['thread', 'forum', 'author', 'lastreplier', 'lastreplytime'])
@@ -275,6 +283,7 @@ class Parser():
             results.append(ThreadList((forum_), title, author, reply_count, view_count, lastreplier, lastreplytime))
         return results
 
+    @staticmethod
     def parseThreadPage(html):
         results = []
         soup = BeautifulSoup(html, 'html.parser')
@@ -289,11 +298,14 @@ class Parser():
 
             text = post.find('div', class_ = 'post_body scaleimages').getText().strip()
 
-            signature = post.find('div', class_ = 'signature scaleimages').getText().strip()
+            signature = post.find('div', class_ = 'signature scaleimages')
+            if signature:
+                signature = signature.getText().strip()
             results.append(Post(poster, time, text, signature))
         return results
         
 
     #Parse html, returns tuple containing readable text and the URL
+    @staticmethod
     def _parseHref(line):
         return (line.getText(), line.get('href'))
