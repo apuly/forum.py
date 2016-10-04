@@ -298,7 +298,9 @@ class Parser():
 
             text = post.find('div', class_ = 'post_body scaleimages').getText().strip()
 
-            signature = post.find('div', class_ = 'signature scaleimages').getText().strip()
+            signature = post.find('div', class_ = 'signature scaleimages')
+            if signature:
+                signature = signature.getText().strip()
             results.append(Post(poster, time, text, signature))
         return results
         
