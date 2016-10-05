@@ -4,7 +4,7 @@ if sys.version_info < (3, 0):
     import urllib2 as request
     import urllib as parse
 else:
-    import http.cookiejar
+    import http.cookiejar as cookiejar
     from urllib import request, parse
 from bs4 import BeautifulSoup
 import re
