@@ -18,7 +18,7 @@ class forum(object):
         else:
             self._protocal = "http"
         self._port = port
-        cj = http.cookiejar.CookieJar()                     #Cookies. Used for logging into the server.
+        cj = cookiejar.CookieJar()                     #Cookies. Used for logging into the server.
         self._cproc = request.HTTPCookieProcessor(cj)
         self._opener = request.build_opener(self._cproc)
         self._login = False
