@@ -62,6 +62,26 @@ class forum(object):
         data['message'] = text                                  #Adds the message to the post data
         self._open('/newreply.php', data = data)                #Posts the reply
         return True
+    
+    def newThread(self, subject, message, fid):
+        if not self._login:
+            return 0
+        url = '/newthread.php?fid='+str(fid)
+        postData = self._getPostData(url)
+        if not postData:
+            return False
+        html = self._open(postData[0])
+        soup = BeautifulSoup(html, 'html.parser')
+        inputs = soup.find("form", method="post", id="quick_reply_form").findAll("input", type="hidden")      #Gets the needed posting information
+        data = {}
+        for input in inputs:
+            data[input.get("name")] = input.get("value")
+        data.update({
+            "subject":subject,
+            "message":message
+        })
+        self._open(url+'&processed=1', data = data)
+        return True
 
     def moveThread(self, thread_id, target_subforum, method = 'move', redirect_expire=""):
         #if type('target_subforum') != int:
