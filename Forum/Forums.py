@@ -108,6 +108,7 @@ class forum(object):
         if not self._login:
             raise self.NoLogin
         forumData = self._getForumData(url)
+        print(forumData)
         create_url = "/newthread.php?fid={}".format(forumData[1]) #build url that is posted
         
         # collect information for succesfully posting thread
@@ -218,7 +219,7 @@ class forum(object):
         if type(s) is str:
             return (s, re.match(r"\/forum-(\d+)(\D.+)?", s).group(1))
         elif type(s) is int:
-            return ("/forum-{}".format(s))
+            return ("/forum-{}".format(s), s)
         else:
             raise TypeError
 
