@@ -218,7 +218,7 @@ class forum(object):
         if type(s) is str:
             return (s, re.match(r"\/forum-(\d+)(\D.+)?", s).group(1))
         elif type(s) is int:
-            return ("/forum-{s}".format(s))
+            return ("/forum-{}".format(s))
         else:
             raise TypeError
 
