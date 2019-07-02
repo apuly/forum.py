@@ -12,6 +12,7 @@ def main(args):
     parser.add_argument("--search", "-s", help="searches for something on the forum")
     parser.add_argument("--theadlist", "-t", help="list the threads in a subforum", type=int)
     parser.add_argument("--reply", "-r", help="post a reply to thread", type=int)
+    parser.add_argument("--readthread", help="open a tread and print the replies", type=int)
 
     args = parser.parse_args(args)
     print(args)
@@ -32,9 +33,14 @@ def main(args):
             print("reply should have been made succesfully")
 
     if args.theadlist:
-        posts = forum.openPage(f"/forum-{args.theadlist}.html")
+        threads = forum.openPage(f"/forum-{args.theadlist}.html")
+        for thread in threads:
+            print(thread)
+
+    if args.readthread:
+        posts = forum.openPage(f"/thread-{args.readthread}.html")
         for post in posts:
-            print(post)
+            print("{}: {}".format(post.poster, post.text))
 
 
     if args.search:

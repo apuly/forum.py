@@ -35,9 +35,7 @@ class Parser():
         results = []
         #tuple = namedtuple('searchResults', ['thread', 'forum', 'author', 'lastreplier', 'lastreplytime'])
         decoded = html.decode()
-        with open("html.txt", 'w' ) as f:
-            f.write(decoded)
-
+       
         soup = BeautifulSoup(decoded, features = PARSER)
         forum_ = soup.find('div', class_ = 'navigation').find('span').getText()
         rows = soup.findAll('tr', class_ = 'inline_row')
@@ -66,7 +64,7 @@ class Parser():
     def parseThreadPage(html):
         results = []
         soup = BeautifulSoup(html, PARSER)
-        posts = soup.findAll('div', class_ = 'post ')
+        posts = soup.findAll('div', class_ = 'post')
         for post in posts:
 
             line = post.find('div', class_ = 'author_information')

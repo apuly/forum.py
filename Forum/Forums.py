@@ -50,7 +50,7 @@ class forum(object):
         if re.match(r"\/forum-\d+.html", url):          #URL that refers to a subforum
             return Parser.parseThreadList(resp)
         elif re.match(r"\/thread-\d+.html", url):       #URL that refers to a thread
-            return Parser.parseThreadList(resp)
+            return Parser.parseThreadPage(resp)
         elif url.startswith("search.php") and "action=results" in url:
             Parser.parseSearchResults(resp)
         else:
