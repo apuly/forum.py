@@ -114,7 +114,7 @@ class forum(object):
         # collect information for succesfully posting thread
         html = self._open(create_url)
         soup = BeautifulSoup(html, PARSER)
-        inputs = soup.findAll("form", method="post")[1].findAll("input", type="hidden")
+        inputs = soup.find("form", method="post", action=re.compile(r"newthread\.php.+")).findAll("input", type="hidden")
         
         # parse posting information into a dictionary
         data = {
