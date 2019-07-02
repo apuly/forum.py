@@ -37,6 +37,7 @@ class forum(object):
         try:
             return self._opener.open("{}://{}{}".format(self._protocal, self._ip, url), data = data)
         except:
+            print("something went wrong while opening shit")
             pass
             #print(E.fp.read())
     
@@ -55,7 +56,7 @@ class forum(object):
         else:
             return resp
     
-    def respond(self, text, url = None):            #Posts comment on a thread, returns True if succesfull, returns False if it fails
+    def respond(self, text, url):            #Posts comment on a thread, returns True if succesfull, returns False if it fails
         """
         replies to an existing thread
         text will be the content of the message
@@ -207,7 +208,7 @@ class forum(object):
         if isinstance(s, str):
             return (s, re.match(r"\/thread-(\d+)(\D.+)?", s).group(1))
         elif isinstance(s, int):
-            return ("/thread-{}".format(s), s)
+            return ("/thread-{}.html".format(s), s)
         else:
             raise TypeError 
 

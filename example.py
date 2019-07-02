@@ -11,6 +11,7 @@ def main(args):
     parser.add_argument("--shitpost", help="post a worthless thread into a subforum", type=int)
     parser.add_argument("--search", "-s", help="searches for something on the forum")
     parser.add_argument("--theadlist", "-t", help="list the threads in a subforum", type=int)
+    parser.add_argument("--reply", "-r", help="post a reply to thread", type=int)
 
     args = parser.parse_args(args)
     print(args)
@@ -19,11 +20,16 @@ def main(args):
     if args.user and args.password:
         if forum.login(args.user, args.password):
             print("login succesfull")
-            if args.shitpost:
-                if forum.createThread("this is a bot", "it will murder you if you don't watch out", args.shitpost):
-                    print("shitpost should have been succesful")
         else:
             print("login failed")
+
+    if args.shitpost:
+        if forum.createThread("this is a bot", "it will murder you if you don't watch out", args.shitpost):
+            print("shitpost should have been succesful")
+
+    if args.reply:
+        if forum.respond("all bots are evil and must be removed from the internet", args.reply):
+            print("reply should have been made succesfully")
 
     if args.theadlist:
         posts = forum.openPage(f"/forum-{args.theadlist}.html")

@@ -50,4 +50,4 @@ class ThreadList(object):       #Threadlist object. Contains thread list informa
         return self._lastpt
 
     def __str__(self):
-        return f"title: {self._title}, author: {self._author}"
+        return "title: {}, author: {}".format(self._title, self._author)
